@@ -20,7 +20,7 @@ export async function POST(request) {
 
     // Initialize the Gemini AI client
     const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // The system prompt — this is what makes Gemini act like an epidemiologist
     const prompt = `
