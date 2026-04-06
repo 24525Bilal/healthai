@@ -1,0 +1,612 @@
+// app/page.js
+// Main Dashboard — The heart of HealthSentinel AI
+// This page displays all clinical data, runs AI analysis, and shows results
+
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  Activity,
+  Shield,
+  AlertTriangle,
+  MapPin,
+  Brain,
+  TrendingUp,
+  Pill,
+  FileText,
+  Zap,
+  Users,
+  Building2,
+  ChevronRight,
+  ShieldAlert,
+  HeartPulse,
+  Droplets,
+  ClipboardList,
+} from "lucide-react";
+import { clinicalReports, trendData, resourceData, areaData } from "./lib/mock-data";
+import TrendChart from "./components/TrendChart";
+import ResourceTable from "./components/ResourceTable";
+
+export default function Dashboard() {
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState(null);
+  const [currentTime, setCurrentTime] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Live clock
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleString("en-IN", {
+          weekday: "short",
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Call the AI analysis API
+  const runAnalysis = async () => {
+    setIsAnalyzing(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reports: clinicalReports }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAnalysisResult(data.analysis);
+      } else {
+        setError(data.error || "Analysis failed. Check your Gemini API key.");
+      }
+    } catch (err) {
+      setError("Network error. Make sure the dev server is running.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Calculate stats
+  const totalReports = clinicalReports.length;
+  const uniqueAreas = [...new Set(clinicalReports.map((r) => r.area))].length;
+  const uniqueHospitals = [...new Set(clinicalReports.map((r) => r.hospital))].length;
+  const criticalResources = resourceData.filter((r) => r.status === "low").length;
+
+  const getSeverityClass = (level) => {
+    if (!level) return "warning";
+    if (level === "Critical" || level === "High") return "critical";
+    if (level === "Medium") return "warning";
+    return "safe";
+  };
+
+  return (
+    <div className="app-container">
+      {/* ===== HEADER ===== */}
+      <header className="header" id="app-header">
+        <div className="header-left">
+          <div className="header-logo">
+            <ShieldAlert size={26} color="white" />
+          </div>
+          <div>
+            <h1 className="header-title">HealthSentinel AI</h1>
+            <p className="header-subtitle">Public Health Outbreak Detection System</p>
+          </div>
+        </div>
+        <div className="header-right">
+          <div className="live-badge">
+            <span className="live-dot" />
+            Live Monitoring
+          </div>
+          <span className="header-time">{currentTime}</span>
+        </div>
+      </header>
+
+      {/* ===== STATS ROW ===== */}
+      <div className="stats-row" id="stats-section">
+        <div className="stat-card blue">
+          <div className="stat-icon blue">
+            <FileText size={20} />
+          </div>
+          <div className="stat-value">{totalReports}</div>
+          <div className="stat-label">Clinical Reports</div>
+        </div>
+        <div className="stat-card emerald">
+          <div className="stat-icon emerald">
+            <Building2 size={20} />
+          </div>
+          <div className="stat-value">{uniqueHospitals}</div>
+          <div className="stat-label">Reporting Hospitals</div>
+        </div>
+        <div className="stat-card amber">
+          <div className="stat-icon amber">
+            <MapPin size={20} />
+          </div>
+          <div className="stat-value">{uniqueAreas}</div>
+          <div className="stat-label">Affected Areas</div>
+        </div>
+        <div className="stat-card red">
+          <div className="stat-icon red">
+            <AlertTriangle size={20} />
+          </div>
+          <div className="stat-value">{criticalResources}</div>
+          <div className="stat-label">Resource Shortages</div>
+        </div>
+      </div>
+
+      {/* ===== TABS ===== */}
+      <div className="tabs" id="nav-tabs">
+        <button
+          className={`tab ${activeTab === "overview" ? "active" : ""}`}
+          onClick={() => setActiveTab("overview")}
+        >
+          <Activity size={14} /> Overview
+        </button>
+        <button
+          className={`tab ${activeTab === "ai" ? "active" : ""}`}
+          onClick={() => setActiveTab("ai")}
+        >
+          <Brain size={14} /> AI Analysis
+        </button>
+        <button
+          className={`tab ${activeTab === "resources" ? "active" : ""}`}
+          onClick={() => setActiveTab("resources")}
+        >
+          <Pill size={14} /> Resources
+        </button>
+        <button
+          className={`tab ${activeTab === "reports" ? "active" : ""}`}
+          onClick={() => setActiveTab("reports")}
+        >
+          <ClipboardList size={14} /> Reports
+        </button>
+      </div>
+
+      {/* ===== OVERVIEW TAB ===== */}
+      {activeTab === "overview" && (
+        <>
+          <div className="dashboard-grid">
+            {/* Symptom Trends */}
+            <div className="card" id="trend-chart-card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <TrendingUp size={18} /> Symptom Trends (7 Days)
+                </h2>
+                <span className="card-badge critical">Spike Detected</span>
+              </div>
+              <TrendChart data={trendData} />
+            </div>
+
+            {/* Area Risk Summary */}
+            <div className="card" id="area-risk-card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <MapPin size={18} /> Area Risk Assessment
+                </h2>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {areaData.map((area, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "14px 16px",
+                      background: "var(--bg-glass)",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border-subtle)",
+                      transition: "all 200ms",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: area.color,
+                          boxShadow: `0 0 8px ${area.color}40`,
+                        }}
+                      />
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            fontSize: "0.9rem",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {area.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          {area.cases} cases reported
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      className={`card-badge ${
+                        area.risk === "Critical"
+                          ? "critical"
+                          : area.risk === "High"
+                          ? "warning"
+                          : "safe"
+                      }`}
+                    >
+                      {area.risk}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Action Button */}
+          <div className="analyze-section">
+            <button
+              className="analyze-btn"
+              onClick={() => {
+                setActiveTab("ai");
+                if (!analysisResult) runAnalysis();
+              }}
+              id="quick-analyze-btn"
+            >
+              <Zap size={20} />
+              Go to AI Analysis
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ===== AI ANALYSIS TAB ===== */}
+      {activeTab === "ai" && (
+        <>
+          <div className="analyze-section">
+            <button
+              className="analyze-btn"
+              onClick={runAnalysis}
+              disabled={isAnalyzing}
+              id="run-analysis-btn"
+            >
+              {isAnalyzing ? (
+                <>
+                  <div className="spinner" />
+                  Gemini AI is analyzing {totalReports} clinical reports...
+                </>
+              ) : (
+                <>
+                  <Brain size={20} />
+                  {analysisResult ? "Re-run AI Outbreak Analysis" : "Run AI Outbreak Analysis"}
+                  <Zap size={16} />
+                </>
+              )}
+            </button>
+          </div>
+
+          {error && (
+            <div
+              className="card"
+              style={{
+                borderColor: "rgba(239,68,68,0.3)",
+                marginBottom: 24,
+              }}
+            >
+              <p style={{ color: "var(--accent-red)", fontWeight: 500 }}>
+                ⚠️ Error: {error}
+              </p>
+            </div>
+          )}
+
+          {analysisResult && (
+            <div className="ai-results">
+              {/* Outbreak Summary Banner */}
+              <div
+                className={`outbreak-summary ${getSeverityClass(
+                  analysisResult.severity_level
+                )}`}
+              >
+                <div className="outbreak-title">
+                  {analysisResult.outbreak_detected ? (
+                    <AlertTriangle size={22} />
+                  ) : (
+                    <Shield size={22} />
+                  )}
+                  {analysisResult.outbreak_detected
+                    ? `⚠️ OUTBREAK DETECTED: ${analysisResult.disease_name}`
+                    : "✅ No Outbreak Detected"}
+                </div>
+                <p style={{ color: "var(--text-secondary)", lineHeight: 1.7, fontSize: "0.9rem" }}>
+                  {analysisResult.summary}
+                </p>
+                <div className="outbreak-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">Confidence</span>
+                    <span className="meta-value">{analysisResult.confidence_percent}%</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Severity</span>
+                    <span className="meta-value">{analysisResult.severity_level}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Cases</span>
+                    <span className="meta-value">{analysisResult.total_suspected_cases}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Transmission</span>
+                    <span className="meta-value">{analysisResult.transmission_mode}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Trend</span>
+                    <span className="meta-value">{analysisResult.predicted_trend}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Est. New Cases (7d)</span>
+                    <span className="meta-value">{analysisResult.estimated_new_cases_next_week}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Severity & Confidence Visual */}
+              <div
+                className={`severity-indicator ${analysisResult.severity_level}`}
+              >
+                <div>
+                  <div className="severity-level">{analysisResult.severity_level}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>
+                    Threat Level
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: "0.7rem",
+                      color: "var(--text-muted)",
+                      marginBottom: 6,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      fontWeight: 600,
+                    }}
+                  >
+                    AI Confidence: {analysisResult.confidence_percent}%
+                  </div>
+                  <div className="confidence-bar-track">
+                    <div
+                      className="confidence-bar-fill"
+                      style={{
+                        width: `${analysisResult.confidence_percent}%`,
+                        background:
+                          analysisResult.confidence_percent >= 80
+                            ? "linear-gradient(90deg, #ef4444, #f97316)"
+                            : analysisResult.confidence_percent >= 50
+                            ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
+                            : "linear-gradient(90deg, #10b981, #34d399)",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommendations Grid */}
+              <div className="recommendations-grid">
+                {/* Health Authority Actions */}
+                <div className="rec-section">
+                  <h3 className="rec-section-title blue">
+                    <Shield size={14} /> Health Authority Actions
+                  </h3>
+                  <ul className="rec-list">
+                    {analysisResult.recommended_actions?.map((action, i) => (
+                      <li key={i}>{action}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Citizen Precautions */}
+                <div className="rec-section">
+                  <h3 className="rec-section-title amber">
+                    <Users size={14} /> Citizen Precautions
+                  </h3>
+                  <ul className="rec-list">
+                    {analysisResult.citizen_precautions?.map((p, i) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Medicine Requirements */}
+                <div className="rec-section">
+                  <h3 className="rec-section-title emerald">
+                    <Pill size={14} /> Medicine Requirements
+                  </h3>
+                  <ul className="rec-list">
+                    {analysisResult.medicine_requirements?.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Water & Sanitation */}
+                <div className="rec-section">
+                  <h3 className="rec-section-title purple">
+                    <Droplets size={14} /> Water & Sanitation Advisory
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: "0.85rem",
+                      color: "var(--text-secondary)",
+                      lineHeight: 1.7,
+                      padding: "8px 12px",
+                      background: "rgba(255,255,255,0.02)",
+                      borderRadius: "var(--radius-sm)",
+                    }}
+                  >
+                    {analysisResult.water_sanitation_advisory}
+                  </p>
+                </div>
+              </div>
+
+              {/* Affected Areas & Risk Groups */}
+              <div className="dashboard-grid" style={{ marginTop: 16 }}>
+                <div className="rec-section">
+                  <h3 className="rec-section-title blue">
+                    <MapPin size={14} /> Highest Risk Areas
+                  </h3>
+                  <ul className="rec-list">
+                    {analysisResult.affected_areas?.map((a, i) => (
+                      <li key={i}>
+                        {a}
+                        {a === analysisResult.highest_risk_area && (
+                          <span
+                            style={{
+                              marginLeft: 8,
+                              fontSize: "0.65rem",
+                              background: "var(--accent-red-glow)",
+                              color: "var(--accent-red)",
+                              padding: "2px 8px",
+                              borderRadius: 100,
+                              fontWeight: 700,
+                            }}
+                          >
+                            HIGHEST
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rec-section">
+                  <h3 className="rec-section-title amber">
+                    <HeartPulse size={14} /> At-Risk Groups
+                  </h3>
+                  <ul className="rec-list">
+                    {analysisResult.at_risk_groups?.map((g, i) => (
+                      <li key={i}>{g}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!analysisResult && !isAnalyzing && !error && (
+            <div
+              className="card"
+              style={{ textAlign: "center", padding: "60px 24px" }}
+            >
+              <Brain
+                size={48}
+                style={{ color: "var(--accent-blue)", marginBottom: 16, opacity: 0.5 }}
+              />
+              <h3
+                style={{
+                  color: "var(--text-secondary)",
+                  fontWeight: 500,
+                  marginBottom: 8,
+                }}
+              >
+                Click &quot;Run AI Outbreak Analysis&quot; above
+              </h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                Gemini AI will analyze {totalReports} anonymized clinical reports to detect
+                potential disease outbreaks in real-time.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ===== RESOURCES TAB ===== */}
+      {activeTab === "resources" && (
+        <div className="card" id="resource-card">
+          <div className="card-header">
+            <h2 className="card-title">
+              <Pill size={18} /> Medicine & Resource Availability
+            </h2>
+            <span className="card-badge warning">
+              {criticalResources} Shortages
+            </span>
+          </div>
+          <ResourceTable data={resourceData} />
+        </div>
+      )}
+
+      {/* ===== REPORTS TAB ===== */}
+      {activeTab === "reports" && (
+        <div className="card" id="reports-card">
+          <div className="card-header">
+            <h2 className="card-title">
+              <ClipboardList size={18} /> Anonymized Clinical Reports
+            </h2>
+            <span className="card-badge safe">{totalReports} Records</span>
+          </div>
+          <div className="reports-scroll">
+            <table className="reports-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>Hospital</th>
+                  <th>Area</th>
+                  <th>Age</th>
+                  <th>Symptoms</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clinicalReports.map((report, idx) => (
+                  <tr key={idx}>
+                    <td style={{ fontWeight: 600, color: "var(--accent-blue)" }}>
+                      {report.id}
+                    </td>
+                    <td>{report.date}</td>
+                    <td>{report.hospital}</td>
+                    <td>
+                      <span className="area-tag">{report.area}</span>
+                    </td>
+                    <td>{report.age}</td>
+                    <td
+                      style={{
+                        maxWidth: 280,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {report.symptoms}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== FOOTER ===== */}
+      <footer className="footer">
+        <p>
+          Powered by <strong>Google Gemini AI</strong> &bull; Google Firebase &bull; HealthSentinel AI &copy; 2026
+        </p>
+        <p style={{ marginTop: 4 }}>
+          Built for public health readiness. All patient data is anonymized.
+        </p>
+      </footer>
+    </div>
+  );
+}
