@@ -62,6 +62,15 @@ export async function POST(request) {
     return Response.json({ success: true, reply: responseText });
   } catch (error) {
     console.error("Chat API Error:", error);
+    
+    // Check if it's a 429 Too Many Requests error
+    if (error.message?.includes("429") || error.message?.includes("exceeded your current quota")) {
+      return Response.json({ 
+        success: true, 
+        reply: "⚠️ *Notice: HealthSentinel AI is currently experiencing high load (API Quota Exceeded).*\n\nHowever, for general health inquiries:\n\n• **For stomach issues/diarrhea**: Stay hydrated with ORS, boil drinking water, and seek medical help if symptoms persist.\n• **For fever**: Rest, stay hydrated, and consult a doctor if it exceeds 39°C or lasts more than 3 days.\n• **Emergency**: Please call 108 immediately or visit the nearest hospital."
+      });
+    }
+
     return Response.json(
       {
         success: false,
