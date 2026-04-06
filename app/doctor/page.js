@@ -45,11 +45,9 @@ export default function DoctorPortal() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
-  const [step, setStep] = useState("form"); // "form" | "submitting" | "analyzing" | "result"
+  const [step, setStep] = useState("form"); // "form" | "submitting" | "result"
 
   const selectedArea = formData.hospital
     ? hospitalAreaMap[formData.hospital]?.area || "Unknown"
@@ -64,7 +62,6 @@ export default function DoctorPortal() {
     e.preventDefault();
     setError(null);
     setSubmitSuccess(false);
-    setAnalysisResult(null);
 
     // Validate
     if (!formData.hospital || !formData.age || !formData.gender || !formData.symptoms.trim()) {
@@ -100,40 +97,18 @@ export default function DoctorPortal() {
 
       setIsSubmitting(false);
       setSubmitSuccess(true);
-
-      // ===== STEP 2: Fetch all reports and run AI Analysis =====
-      setStep("analyzing");
-      setIsAnalyzing(true);
-
-      const allReports = await fetchClinicalReports();
-
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reports: allReports }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAnalysisResult(data.analysis);
-        setStep("result");
-      } else {
-        throw new Error(data.error || "AI analysis failed.");
-      }
+      setStep("result");
     } catch (err) {
       setError(err.message);
       setStep("form");
     } finally {
       setIsSubmitting(false);
-      setIsAnalyzing(false);
     }
   };
 
   const resetForm = () => {
     setFormData({ hospital: "", age: "", gender: "", symptoms: "" });
     setSubmitSuccess(false);
-    setAnalysisResult(null);
     setError(null);
     setStep("form");
   };
@@ -175,25 +150,18 @@ export default function DoctorPortal() {
           <span>Patient Details</span>
         </div>
         <div className="doctor-progress-line" />
-        <div className={`doctor-progress-step ${step === "submitting" ? "active" : (step === "analyzing" || step === "result" ? "done" : "")}`}>
+        <div className={`doctor-progress-step ${step === "submitting" ? "active" : (step === "result" ? "done" : "")}`}>
           <div className="doctor-progress-icon">
-            {(step === "analyzing" || step === "result") ? <CheckCircle2 size={18} /> : <Send size={18} />}
+            {step === "result" ? <CheckCircle2 size={18} /> : <Send size={18} />}
           </div>
-          <span>Save to Database</span>
-        </div>
-        <div className="doctor-progress-line" />
-        <div className={`doctor-progress-step ${step === "analyzing" ? "active" : (step === "result" ? "done" : "")}`}>
-          <div className="doctor-progress-icon">
-            {step === "result" ? <CheckCircle2 size={18} /> : <Brain size={18} />}
-          </div>
-          <span>AI Analysis</span>
+          <span>Save Data</span>
         </div>
         <div className="doctor-progress-line" />
         <div className={`doctor-progress-step ${step === "result" ? "active" : ""}`}>
           <div className="doctor-progress-icon">
-            <Sparkles size={18} />
+            <CheckCircle2 size={18} />
           </div>
-          <span>Results</span>
+          <span>Success</span>
         </div>
       </div>
 
@@ -303,8 +271,7 @@ export default function DoctorPortal() {
             {/* Submit */}
             <button type="submit" className="analyze-btn" id="submit-report-btn">
               <Send size={18} />
-              Submit Report & Run AI Analysis
-              <Sparkles size={16} />
+              Submit Patient Report
             </button>
           </form>
         </div>
@@ -321,144 +288,38 @@ export default function DoctorPortal() {
         </div>
       )}
 
-      {/* ===== ANALYZING STATE ===== */}
-      {step === "analyzing" && (
-        <div className="card doctor-status-card">
-          <div className="doctor-status-content">
-            <Brain size={48} className="doctor-spin" style={{ color: "var(--accent-purple)" }} />
-            <h3>AI is Analyzing All Reports...</h3>
-            <p>Gemini AI is processing the full dataset including your new patient report</p>
-          </div>
-        </div>
-      )}
-
       {/* ===== RESULTS ===== */}
-      {step === "result" && analysisResult && (
-        <div className="ai-results" style={{ animation: "fadeSlideIn 0.5s ease-out" }}>
+      {step === "result" && (
+        <div className="ai-results" style={{ animation: "fadeSlideIn 0.5s ease-out", maxWidth: 600, margin: "0 auto" }}>
           {/* Success Banner */}
-          <div className="doctor-success-banner" id="success-banner">
-            <CheckCircle2 size={22} />
+          <div className="doctor-success-banner" id="success-banner" style={{ marginBottom: 24 }}>
+            <CheckCircle2 size={24} />
             <div>
-              <strong>Patient Report Logged Successfully</strong>
-              <p>Report saved to Firebase and AI analysis complete</p>
+              <strong style={{ fontSize: "1.1rem" }}>Patient Report Logged Successfully</strong>
+              <p style={{ marginTop: 4 }}>Data safely stored in the central clinical registry.</p>
             </div>
           </div>
 
-          {/* Outbreak Summary */}
-          <div className={`outbreak-summary ${getSeverityClass(analysisResult.severity_level)}`}>
-            <div className="outbreak-title">
-              {analysisResult.outbreak_detected ? (
-                <AlertTriangle size={22} />
-              ) : (
-                <Shield size={22} />
-              )}
-              {analysisResult.outbreak_detected
-                ? `⚠️ OUTBREAK DETECTED: ${analysisResult.disease_name}`
-                : "✅ No Outbreak Detected"}
+          <div className="card" style={{ padding: 24, textAlign: "center" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--accent-emerald-glow)", color: "var(--accent-emerald)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <ShieldAlert size={32} />
             </div>
-            <p style={{ color: "var(--text-secondary)", lineHeight: 1.7, fontSize: "0.9rem" }}>
-              {analysisResult.summary}
+            <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 8 }}>Ready for AI Monitoring</h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.6, marginBottom: 20 }}>
+              The HealthSentinel AI monitors the data stream automatically to detect sudden outbreaks.
             </p>
-            <div className="outbreak-meta">
-              <div className="meta-item">
-                <span className="meta-label">Confidence</span>
-                <span className="meta-value">{analysisResult.confidence_percent}%</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">Severity</span>
-                <span className="meta-value">{analysisResult.severity_level}</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">Total Cases</span>
-                <span className="meta-value">{analysisResult.total_suspected_cases}</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">Transmission</span>
-                <span className="meta-value">{analysisResult.transmission_mode}</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">Trend</span>
-                <span className="meta-value">{analysisResult.predicted_trend}</span>
-              </div>
-              <div className="meta-item">
-                <span className="meta-label">Est. New (7d)</span>
-                <span className="meta-value">{analysisResult.estimated_new_cases_next_week}</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Severity & Confidence */}
-          <div className={`severity-indicator ${analysisResult.severity_level}`}>
-            <div>
-              <div className="severity-level">{analysisResult.severity_level}</div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>
-                City Threat Level
-              </div>
+            {/* Action Buttons */}
+            <div style={{ display: "flex", gap: 16, flexDirection: "column" }}>
+              <button className="analyze-btn" onClick={resetForm} id="add-another-btn">
+                <Stethoscope size={18} />
+                Add Another Patient
+              </button>
+              <Link href="/" className="doctor-back-link" style={{ background: "rgba(255,255,255,0.05)", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <TrendingUp size={18} />
+                View Full Dashboard
+              </Link>
             </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  color: "var(--text-muted)",
-                  marginBottom: 6,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  fontWeight: 600,
-                }}
-              >
-                AI Confidence: {analysisResult.confidence_percent}%
-              </div>
-              <div className="confidence-bar-track">
-                <div
-                  className="confidence-bar-fill"
-                  style={{
-                    width: `${analysisResult.confidence_percent}%`,
-                    background:
-                      analysisResult.confidence_percent >= 80
-                        ? "linear-gradient(90deg, #ef4444, #f97316)"
-                        : analysisResult.confidence_percent >= 50
-                        ? "linear-gradient(90deg, #f59e0b, #fbbf24)"
-                        : "linear-gradient(90deg, #10b981, #34d399)",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Recommendations */}
-          <div className="recommendations-grid">
-            <div className="rec-section">
-              <h3 className="rec-section-title blue">
-                <Shield size={14} /> Recommended Actions
-              </h3>
-              <ul className="rec-list">
-                {analysisResult.recommended_actions?.slice(0, 3).map((a, i) => (
-                  <li key={i}>{a}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="rec-section">
-              <h3 className="rec-section-title amber">
-                <HeartPulse size={14} /> Citizen Precautions
-              </h3>
-              <ul className="rec-list">
-                {analysisResult.citizen_precautions?.slice(0, 3).map((p, i) => (
-                  <li key={i}>{p}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: "flex", gap: 16, marginTop: 24 }}>
-            <button className="analyze-btn" onClick={resetForm} id="add-another-btn" style={{ flex: 1 }}>
-              <Stethoscope size={18} />
-              Add Another Patient
-            </button>
-            <Link href="/" className="analyze-btn" id="view-dashboard-btn" style={{ flex: 1, textDecoration: "none", textAlign: "center" }}>
-              <TrendingUp size={18} />
-              View Full Dashboard
-            </Link>
           </div>
         </div>
       )}

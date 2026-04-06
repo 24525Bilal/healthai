@@ -74,6 +74,11 @@ export default function Dashboard() {
         // Check if data came from Firebase or mock
         const isFromFirebase = reports.length > 0 && reports[0]._docId;
         setDataSource(isFromFirebase ? "firebase" : "mock");
+
+        // Automatically run analysis in background
+        if (reports.length > 0) {
+          runAnalysis(reports);
+        }
       } catch (err) {
         console.error("Failed to load from Firebase, using mock data:", err);
         setDataSource("mock");
@@ -106,15 +111,25 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [lang]);
 
-  // Call the AI analysis API
-  const runAnalysis = async () => {
+  // Call the AI analysis API with a 14-day filter
+  const runAnalysis = async (reportsToAnalyze = clinicalReports) => {
     setIsAnalyzing(true);
     setError(null);
     try {
+      // Filter reports for the last 14 days to check for sudden outbreaks
+      const twoWeeksAgo = new Date();
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+      
+      const recentReports = reportsToAnalyze.filter(r => {
+        if (!r.date) return false;
+        const reportDate = new Date(r.date);
+        return reportDate >= twoWeeksAgo;
+      });
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reports: clinicalReports }),
+        body: JSON.stringify({ reports: recentReports }),
       });
       const data = await response.json();
       if (data.success) {
@@ -363,23 +378,27 @@ export default function Dashboard() {
       {/* ===== AI ANALYSIS TAB ===== */}
       {activeTab === "ai" && (
         <>
-          <div className="analyze-section">
+          <div className="analyze-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--text-primary)", display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Brain size={20} color="var(--accent-purple)" />
+              {t.aiAnalysis}
+            </h2>
             <button
               className="analyze-btn"
-              onClick={runAnalysis}
+              onClick={() => runAnalysis(clinicalReports)}
               disabled={isAnalyzing}
               id="run-analysis-btn"
+              style={{ width: 'auto', padding: '10px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               {isAnalyzing ? (
                 <>
                   <div className="spinner" />
-                  {t.analyzingReports} {totalReports} {t.reportsText}
+                  {t.analyzingReports}
                 </>
               ) : (
                 <>
-                  <Brain size={20} />
-                  {analysisResult ? t.reRunAiAnalysis : t.runAiAnalysis}
                   <Zap size={16} />
+                  Refresh Check (14 Days)
                 </>
               )}
             </button>
