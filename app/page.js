@@ -5,9 +5,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Activity,
   Shield,
+  Stethoscope,
   AlertTriangle,
   MapPin,
   Brain,
@@ -23,7 +25,18 @@ import {
   Droplets,
   ClipboardList,
 } from "lucide-react";
-import { clinicalReports, trendData, resourceData, areaData } from "./lib/mock-data";
+import {
+  clinicalReports as mockClinicalReports,
+  trendData as mockTrendData,
+  resourceData as mockResourceData,
+  areaData as mockAreaData,
+} from "./lib/mock-data";
+import {
+  fetchClinicalReports,
+  fetchResources,
+  buildTrendData,
+  buildAreaData,
+} from "./lib/firestore-data";
 import TrendChart from "./components/TrendChart";
 import ResourceTable from "./components/ResourceTable";
 
@@ -33,6 +46,40 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Data state — initialized with mock data, replaced by Firestore data on load
+  const [clinicalReports, setClinicalReports] = useState(mockClinicalReports);
+  const [resourceData, setResourceData] = useState(mockResourceData);
+  const [trendData, setTrendData] = useState(mockTrendData);
+  const [areaData, setAreaData] = useState(mockAreaData);
+  const [dataSource, setDataSource] = useState("loading"); // "firebase" or "mock"
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Fetch data from Firebase on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [reports, resources] = await Promise.all([
+          fetchClinicalReports(),
+          fetchResources(),
+        ]);
+        setClinicalReports(reports);
+        setResourceData(resources);
+        setTrendData(buildTrendData(reports));
+        setAreaData(buildAreaData(reports));
+
+        // Check if data came from Firebase or mock
+        const isFromFirebase = reports.length > 0 && reports[0]._docId;
+        setDataSource(isFromFirebase ? "firebase" : "mock");
+      } catch (err) {
+        console.error("Failed to load from Firebase, using mock data:", err);
+        setDataSource("mock");
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
+    loadData();
+  }, []);
 
   // Live clock
   useEffect(() => {
@@ -106,10 +153,36 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="header-right">
+          <Link href="/doctor" className="doctor-back-link" id="doctor-portal-link" style={{ background: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)", color: "#10b981" }}>
+            <Stethoscope size={16} />
+            Doctor Portal
+          </Link>
           <div className="live-badge">
             <span className="live-dot" />
             Live Monitoring
           </div>
+          {!isLoadingData && (
+            <div
+              className="live-badge"
+              style={{
+                background: dataSource === "firebase"
+                  ? "rgba(16,185,129,0.15)"
+                  : "rgba(245,158,11,0.15)",
+                color: dataSource === "firebase" ? "#10b981" : "#f59e0b",
+              }}
+            >
+              <span
+                className="live-dot"
+                style={{
+                  background: dataSource === "firebase" ? "#10b981" : "#f59e0b",
+                  boxShadow: dataSource === "firebase"
+                    ? "0 0 6px #10b981"
+                    : "0 0 6px #f59e0b",
+                }}
+              />
+              {dataSource === "firebase" ? "Firebase" : "Mock Data"}
+            </div>
+          )}
           <span className="header-time">{currentTime}</span>
         </div>
       </header>
