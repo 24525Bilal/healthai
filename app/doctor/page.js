@@ -27,12 +27,13 @@ import {
 } from "lucide-react";
 import { addClinicalReport, fetchClinicalReports } from "../lib/firestore-data";
 
-// Hospital-to-Area mapping
+// Hospital-to-Area mapping — Chengannur & surrounding areas
 const hospitalAreaMap = {
-  "City General Hospital": { area: "North Zone", lat: 28.7041, lng: 77.1025 },
-  "Sunrise Clinic": { area: "South Zone", lat: 28.5355, lng: 77.3910 },
-  "Metro Hospital": { area: "East Zone", lat: 28.6328, lng: 77.2197 },
-  "Apollo Clinic": { area: "West Zone", lat: 28.6562, lng: 77.0595 },
+  "Govt. Taluk Hospital Chengannur": { area: "Chengannur Town", lat: 9.3162, lng: 76.6155 },
+  "Pushpagiri Medical College": { area: "Tiruvalla", lat: 9.3853, lng: 76.5754 },
+  "Believers Church Medical College": { area: "Tiruvalla", lat: 9.3900, lng: 76.5800 },
+  "Muthoot Medical Centre": { area: "Kozhencherry", lat: 9.3420, lng: 76.7010 },
+  "NSS Medical Mission Hospital": { area: "Pandalam", lat: 9.2268, lng: 76.6780 },
 };
 
 export default function DoctorPortal() {

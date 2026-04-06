@@ -92,12 +92,15 @@ export function buildTrendData(reports) {
 export function buildAreaData(reports) {
   if (!reports || reports.length === 0) return mockAreaData;
 
-  // Default coordinates for known areas
+  // Default coordinates for known areas — Chengannur & surrounding
   const areaCoords = {
-    "North Zone": { lat: 28.7041, lng: 77.1025 },
-    "East Zone": { lat: 28.6328, lng: 77.2197 },
-    "South Zone": { lat: 28.5355, lng: 77.3910 },
-    "West Zone": { lat: 28.6562, lng: 77.0595 },
+    "Chengannur Town": { lat: 9.3162, lng: 76.6155 },
+    "Tiruvalla": { lat: 9.3853, lng: 76.5754 },
+    "Pandalam": { lat: 9.2268, lng: 76.6780 },
+    "Kozhencherry": { lat: 9.3420, lng: 76.7010 },
+    "Pandanad": { lat: 9.3350, lng: 76.6280 },
+    "Aranmula": { lat: 9.3180, lng: 76.6850 },
+    "Budhanoor": { lat: 9.3080, lng: 76.6050 },
   };
 
   const areaMap = {};
