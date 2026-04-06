@@ -1,4 +1,5 @@
 import "./globals.css";
+import { LanguageProvider } from "./lib/LanguageContext";
 
 export const metadata = {
   title: "HealthSentinel AI — Public Health Outbreak Detection",
@@ -10,7 +11,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

@@ -1113,3 +1113,284 @@ body::before {
   }
 }
 
+/* ===== DOCTOR PORTAL ===== */
+
+.doctor-back-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 100px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.doctor-back-link:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  border-color: var(--border-active);
+}
+
+/* Progress Steps */
+.doctor-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 20px 28px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.doctor-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all var(--transition-smooth);
+}
+
+.doctor-progress-step.active {
+  background: var(--accent-blue-glow);
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.doctor-progress-step.done {
+  color: var(--accent-emerald);
+}
+
+.doctor-progress-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--transition-smooth);
+}
+
+.doctor-progress-step.active .doctor-progress-icon {
+  background: var(--accent-blue-glow);
+  border-color: rgba(59,130,246,0.3);
+  box-shadow: 0 0 12px var(--accent-blue-glow);
+}
+
+.doctor-progress-step.done .doctor-progress-icon {
+  background: var(--accent-emerald-glow);
+  border-color: rgba(16,185,129,0.3);
+}
+
+.doctor-progress-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border-subtle);
+  border-radius: 2px;
+}
+
+/* Form Card */
+.doctor-form-card {
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+.doctor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.doctor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doctor-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.doctor-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.doctor-label svg {
+  color: var(--accent-blue);
+}
+
+.doctor-input,
+.doctor-select,
+.doctor-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.doctor-input::placeholder,
+.doctor-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.doctor-input:focus,
+.doctor-select:focus,
+.doctor-textarea:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--accent-blue-glow);
+  background: rgba(255,255,255,0.06);
+}
+
+.doctor-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.doctor-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.doctor-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+.doctor-area-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--accent-blue-glow);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius-sm);
+  color: var(--accent-blue);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.doctor-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-sm);
+  color: var(--accent-red);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+/* Status Cards (Loading) */
+.doctor-status-card {
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+.doctor-status-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.doctor-status-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.doctor-status-content p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Spinning icon animation */
+.doctor-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+/* Success Banner */
+.doctor-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+.doctor-success-banner svg {
+  color: var(--accent-emerald);
+  flex-shrink: 0;
+}
+
+.doctor-success-banner strong {
+  color: var(--accent-emerald);
+  font-size: 0.95rem;
+}
+
+.doctor-success-banner p {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .doctor-field-row {
+    grid-template-columns: 1fr;
+  }
+  .doctor-progress {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .doctor-progress-line {
+    display: none;
+  }
+  .doctor-progress-step span {
+    display: none;
+  }
+}
+

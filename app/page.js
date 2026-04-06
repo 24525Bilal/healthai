@@ -24,6 +24,7 @@ import {
   HeartPulse,
   Droplets,
   ClipboardList,
+  Globe,
 } from "lucide-react";
 import {
   clinicalReports as mockClinicalReports,
@@ -37,10 +38,12 @@ import {
   buildTrendData,
   buildAreaData,
 } from "./lib/firestore-data";
+import { useLang } from "./lib/LanguageContext";
 import TrendChart from "./components/TrendChart";
 import ResourceTable from "./components/ResourceTable";
 
 export default function Dashboard() {
+  const { lang, toggleLang, t } = useLang();
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
@@ -86,7 +89,7 @@ export default function Dashboard() {
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleString("en-IN", {
+        now.toLocaleString(lang === "ml" ? "ml-IN" : "en-IN", {
           weekday: "short",
           day: "2-digit",
           month: "short",
@@ -101,7 +104,7 @@ export default function Dashboard() {
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [lang]);
 
   // Call the AI analysis API
   const runAnalysis = async () => {
@@ -148,18 +151,26 @@ export default function Dashboard() {
             <ShieldAlert size={26} color="white" />
           </div>
           <div>
-            <h1 className="header-title">HealthSentinel AI</h1>
-            <p className="header-subtitle">Public Health Outbreak Detection System</p>
+            <h1 className="header-title">{t.appTitle}</h1>
+            <p className="header-subtitle">{t.appSubtitle}</p>
           </div>
         </div>
         <div className="header-right">
+          <button className="lang-toggle" onClick={toggleLang} id="lang-toggle-admin">
+            <span className="lang-flag">{lang === "en" ? "🇮🇳" : "🇬🇧"}</span>
+            {t.language}
+          </button>
           <Link href="/doctor" className="doctor-back-link" id="doctor-portal-link" style={{ background: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)", color: "#10b981" }}>
             <Stethoscope size={16} />
             Doctor Portal
           </Link>
+          <Link href="/citizen" className="citizen-portal-btn" id="citizen-portal-link">
+            <Users size={14} />
+            {t.citizenPortal}
+          </Link>
           <div className="live-badge">
             <span className="live-dot" />
-            Live Monitoring
+            {t.liveMonitoring}
           </div>
           {!isLoadingData && (
             <div
@@ -194,28 +205,28 @@ export default function Dashboard() {
             <FileText size={20} />
           </div>
           <div className="stat-value">{totalReports}</div>
-          <div className="stat-label">Clinical Reports</div>
+          <div className="stat-label">{t.clinicalReports}</div>
         </div>
         <div className="stat-card emerald">
           <div className="stat-icon emerald">
             <Building2 size={20} />
           </div>
           <div className="stat-value">{uniqueHospitals}</div>
-          <div className="stat-label">Reporting Hospitals</div>
+          <div className="stat-label">{t.reportingHospitals}</div>
         </div>
         <div className="stat-card amber">
           <div className="stat-icon amber">
             <MapPin size={20} />
           </div>
           <div className="stat-value">{uniqueAreas}</div>
-          <div className="stat-label">Affected Areas</div>
+          <div className="stat-label">{t.affectedAreas}</div>
         </div>
         <div className="stat-card red">
           <div className="stat-icon red">
             <AlertTriangle size={20} />
           </div>
           <div className="stat-value">{criticalResources}</div>
-          <div className="stat-label">Resource Shortages</div>
+          <div className="stat-label">{t.resourceShortages}</div>
         </div>
       </div>
 
@@ -225,25 +236,25 @@ export default function Dashboard() {
           className={`tab ${activeTab === "overview" ? "active" : ""}`}
           onClick={() => setActiveTab("overview")}
         >
-          <Activity size={14} /> Overview
+          <Activity size={14} /> {t.overview}
         </button>
         <button
           className={`tab ${activeTab === "ai" ? "active" : ""}`}
           onClick={() => setActiveTab("ai")}
         >
-          <Brain size={14} /> AI Analysis
+          <Brain size={14} /> {t.aiAnalysis}
         </button>
         <button
           className={`tab ${activeTab === "resources" ? "active" : ""}`}
           onClick={() => setActiveTab("resources")}
         >
-          <Pill size={14} /> Resources
+          <Pill size={14} /> {t.resources}
         </button>
         <button
           className={`tab ${activeTab === "reports" ? "active" : ""}`}
           onClick={() => setActiveTab("reports")}
         >
-          <ClipboardList size={14} /> Reports
+          <ClipboardList size={14} /> {t.reports}
         </button>
       </div>
 
@@ -255,9 +266,9 @@ export default function Dashboard() {
             <div className="card" id="trend-chart-card">
               <div className="card-header">
                 <h2 className="card-title">
-                  <TrendingUp size={18} /> Symptom Trends (7 Days)
+                  <TrendingUp size={18} /> {t.symptomTrends}
                 </h2>
-                <span className="card-badge critical">Spike Detected</span>
+                <span className="card-badge critical">{t.spikeDetected}</span>
               </div>
               <TrendChart data={trendData} />
             </div>
@@ -266,7 +277,7 @@ export default function Dashboard() {
             <div className="card" id="area-risk-card">
               <div className="card-header">
                 <h2 className="card-title">
-                  <MapPin size={18} /> Area Risk Assessment
+                  <MapPin size={18} /> {t.areaRiskAssessment}
                 </h2>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -310,7 +321,7 @@ export default function Dashboard() {
                             color: "var(--text-muted)",
                           }}
                         >
-                          {area.cases} cases reported
+                          {area.cases} {t.casesReported}
                         </div>
                       </div>
                     </div>
@@ -342,7 +353,7 @@ export default function Dashboard() {
               id="quick-analyze-btn"
             >
               <Zap size={20} />
-              Go to AI Analysis
+              {t.goToAiAnalysis}
               <ChevronRight size={18} />
             </button>
           </div>
@@ -362,12 +373,12 @@ export default function Dashboard() {
               {isAnalyzing ? (
                 <>
                   <div className="spinner" />
-                  Gemini AI is analyzing {totalReports} clinical reports...
+                  {t.analyzingReports} {totalReports} {t.reportsText}
                 </>
               ) : (
                 <>
                   <Brain size={20} />
-                  {analysisResult ? "Re-run AI Outbreak Analysis" : "Run AI Outbreak Analysis"}
+                  {analysisResult ? t.reRunAiAnalysis : t.runAiAnalysis}
                   <Zap size={16} />
                 </>
               )}
@@ -383,7 +394,7 @@ export default function Dashboard() {
               }}
             >
               <p style={{ color: "var(--accent-red)", fontWeight: 500 }}>
-                ⚠️ Error: {error}
+                ⚠️ {t.error}: {error}
               </p>
             </div>
           )}
@@ -403,35 +414,35 @@ export default function Dashboard() {
                     <Shield size={22} />
                   )}
                   {analysisResult.outbreak_detected
-                    ? `⚠️ OUTBREAK DETECTED: ${analysisResult.disease_name}`
-                    : "✅ No Outbreak Detected"}
+                    ? `⚠️ ${t.outbreakDetected}: ${analysisResult.disease_name}`
+                    : `✅ ${t.noOutbreakDetected}`}
                 </div>
                 <p style={{ color: "var(--text-secondary)", lineHeight: 1.7, fontSize: "0.9rem" }}>
                   {analysisResult.summary}
                 </p>
                 <div className="outbreak-meta">
                   <div className="meta-item">
-                    <span className="meta-label">Confidence</span>
+                    <span className="meta-label">{t.confidence}</span>
                     <span className="meta-value">{analysisResult.confidence_percent}%</span>
                   </div>
                   <div className="meta-item">
-                    <span className="meta-label">Severity</span>
+                    <span className="meta-label">{t.severity}</span>
                     <span className="meta-value">{analysisResult.severity_level}</span>
                   </div>
                   <div className="meta-item">
-                    <span className="meta-label">Cases</span>
+                    <span className="meta-label">{t.cases}</span>
                     <span className="meta-value">{analysisResult.total_suspected_cases}</span>
                   </div>
                   <div className="meta-item">
-                    <span className="meta-label">Transmission</span>
+                    <span className="meta-label">{t.transmission}</span>
                     <span className="meta-value">{analysisResult.transmission_mode}</span>
                   </div>
                   <div className="meta-item">
-                    <span className="meta-label">Trend</span>
+                    <span className="meta-label">{t.trend}</span>
                     <span className="meta-value">{analysisResult.predicted_trend}</span>
                   </div>
                   <div className="meta-item">
-                    <span className="meta-label">Est. New Cases (7d)</span>
+                    <span className="meta-label">{t.estNewCases}</span>
                     <span className="meta-value">{analysisResult.estimated_new_cases_next_week}</span>
                   </div>
                 </div>
@@ -444,7 +455,7 @@ export default function Dashboard() {
                 <div>
                   <div className="severity-level">{analysisResult.severity_level}</div>
                   <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 4 }}>
-                    Threat Level
+                    {t.threatLevel}
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -458,7 +469,7 @@ export default function Dashboard() {
                       fontWeight: 600,
                     }}
                   >
-                    AI Confidence: {analysisResult.confidence_percent}%
+                    {t.aiConfidence}: {analysisResult.confidence_percent}%
                   </div>
                   <div className="confidence-bar-track">
                     <div
@@ -482,7 +493,7 @@ export default function Dashboard() {
                 {/* Health Authority Actions */}
                 <div className="rec-section">
                   <h3 className="rec-section-title blue">
-                    <Shield size={14} /> Health Authority Actions
+                    <Shield size={14} /> {t.healthAuthorityActions}
                   </h3>
                   <ul className="rec-list">
                     {analysisResult.recommended_actions?.map((action, i) => (
@@ -494,7 +505,7 @@ export default function Dashboard() {
                 {/* Citizen Precautions */}
                 <div className="rec-section">
                   <h3 className="rec-section-title amber">
-                    <Users size={14} /> Citizen Precautions
+                    <Users size={14} /> {t.citizenPrecautions}
                   </h3>
                   <ul className="rec-list">
                     {analysisResult.citizen_precautions?.map((p, i) => (
@@ -506,7 +517,7 @@ export default function Dashboard() {
                 {/* Medicine Requirements */}
                 <div className="rec-section">
                   <h3 className="rec-section-title emerald">
-                    <Pill size={14} /> Medicine Requirements
+                    <Pill size={14} /> {t.medicineRequirements}
                   </h3>
                   <ul className="rec-list">
                     {analysisResult.medicine_requirements?.map((m, i) => (
@@ -518,7 +529,7 @@ export default function Dashboard() {
                 {/* Water & Sanitation */}
                 <div className="rec-section">
                   <h3 className="rec-section-title purple">
-                    <Droplets size={14} /> Water & Sanitation Advisory
+                    <Droplets size={14} /> {t.waterSanitationAdvisory}
                   </h3>
                   <p
                     style={{
@@ -539,7 +550,7 @@ export default function Dashboard() {
               <div className="dashboard-grid" style={{ marginTop: 16 }}>
                 <div className="rec-section">
                   <h3 className="rec-section-title blue">
-                    <MapPin size={14} /> Highest Risk Areas
+                    <MapPin size={14} /> {t.highestRiskAreas}
                   </h3>
                   <ul className="rec-list">
                     {analysisResult.affected_areas?.map((a, i) => (
@@ -557,7 +568,7 @@ export default function Dashboard() {
                               fontWeight: 700,
                             }}
                           >
-                            HIGHEST
+                            {t.highest}
                           </span>
                         )}
                       </li>
@@ -566,7 +577,7 @@ export default function Dashboard() {
                 </div>
                 <div className="rec-section">
                   <h3 className="rec-section-title amber">
-                    <HeartPulse size={14} /> At-Risk Groups
+                    <HeartPulse size={14} /> {t.atRiskGroups}
                   </h3>
                   <ul className="rec-list">
                     {analysisResult.at_risk_groups?.map((g, i) => (
@@ -594,11 +605,10 @@ export default function Dashboard() {
                   marginBottom: 8,
                 }}
               >
-                Click &quot;Run AI Outbreak Analysis&quot; above
+                {t.clickRunAnalysis}
               </h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                Gemini AI will analyze {totalReports} anonymized clinical reports to detect
-                potential disease outbreaks in real-time.
+                {t.analysisDescription} {totalReports} {t.anonymizedReports}
               </p>
             </div>
           )}
@@ -610,10 +620,10 @@ export default function Dashboard() {
         <div className="card" id="resource-card">
           <div className="card-header">
             <h2 className="card-title">
-              <Pill size={18} /> Medicine & Resource Availability
+              <Pill size={18} /> {t.medicineResourceAvailability}
             </h2>
             <span className="card-badge warning">
-              {criticalResources} Shortages
+              {criticalResources} {t.shortages}
             </span>
           </div>
           <ResourceTable data={resourceData} />
@@ -625,20 +635,20 @@ export default function Dashboard() {
         <div className="card" id="reports-card">
           <div className="card-header">
             <h2 className="card-title">
-              <ClipboardList size={18} /> Anonymized Clinical Reports
+              <ClipboardList size={18} /> {t.anonymizedClinicalReports}
             </h2>
-            <span className="card-badge safe">{totalReports} Records</span>
+            <span className="card-badge safe">{totalReports} {t.records}</span>
           </div>
           <div className="reports-scroll">
             <table className="reports-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Date</th>
-                  <th>Hospital</th>
-                  <th>Area</th>
-                  <th>Age</th>
-                  <th>Symptoms</th>
+                  <th>{t.id}</th>
+                  <th>{t.date}</th>
+                  <th>{t.hospital}</th>
+                  <th>{t.area}</th>
+                  <th>{t.age}</th>
+                  <th>{t.symptoms}</th>
                 </tr>
               </thead>
               <tbody>
@@ -674,11 +684,9 @@ export default function Dashboard() {
       {/* ===== FOOTER ===== */}
       <footer className="footer">
         <p>
-          Powered by <strong>Google Gemini AI</strong> &bull; Google Firebase &bull; HealthSentinel AI &copy; 2026
+          {t.poweredBy} <strong>Google Gemini AI</strong> &bull; Google Firebase &bull; {t.allRightsReserved}
         </p>
-        <p style={{ marginTop: 4 }}>
-          Built for public health readiness. All patient data is anonymized.
-        </p>
+        <p style={{ marginTop: 4 }}>{t.footerDisclaimer}</p>
       </footer>
     </div>
   );
