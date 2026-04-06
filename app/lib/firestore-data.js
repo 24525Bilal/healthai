@@ -58,6 +58,33 @@ export async function addClinicalReport(report) {
   }
 }
 
+// Fetch rare medicines from Firestore
+export async function fetchRareMedicines() {
+  try {
+    const snapshot = await getDocs(collection(db, "rare_medicines"));
+    if (snapshot.empty) return [];
+    
+    const medicines = snapshot.docs.map((doc) => ({ _docId: doc.id, ...doc.data() }));
+    console.log(`Fetched ${medicines.length} rare medicines from Firestore`);
+    return medicines;
+  } catch (err) {
+    console.error("Error fetching rare medicines from Firestore:", err);
+    return [];
+  }
+}
+
+// Add a rare medicine to Firestore
+export async function addRareMedicine(medicine) {
+  try {
+    const docRef = await addDoc(collection(db, "rare_medicines"), medicine);
+    console.log("Rare medicine added with ID:", docRef.id);
+    return { success: true, id: docRef.id };
+  } catch (err) {
+    console.error("Error adding rare medicine:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 // Build trend data dynamically from clinical reports
 export function buildTrendData(reports) {
   if (!reports || reports.length === 0) return mockTrendData;

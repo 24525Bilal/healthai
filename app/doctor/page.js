@@ -1,10 +1,10 @@
 // app/doctor/page.js
 // Doctor Portal — allows doctors to submit patient reports to Firebase
-// and automatically triggers AI outbreak analysis on the updated dataset.
+// and track rare medicines exclusive to the medical staff.
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldAlert,
@@ -14,18 +14,18 @@ import {
   Shield,
   CheckCircle2,
   ArrowLeft,
-  Brain,
   Building2,
   MapPin,
   User,
-  Calendar,
   HeartPulse,
   ClipboardList,
   Loader2,
-  Sparkles,
   TrendingUp,
+  Pill,
+  Database,
+  Plus
 } from "lucide-react";
-import { addClinicalReport, fetchClinicalReports } from "../lib/firestore-data";
+import { addClinicalReport, fetchRareMedicines, addRareMedicine } from "../lib/firestore-data";
 
 // Hospital-to-Area mapping — Chengannur & surrounding areas
 const hospitalAreaMap = {
@@ -37,42 +37,66 @@ const hospitalAreaMap = {
 };
 
 export default function DoctorPortal() {
+  const [activeTab, setActiveTab] = useState("patients"); // "patients" | "medicines"
+
+  // Patient Form State
   const [formData, setFormData] = useState({
     hospital: "",
     age: "",
     gender: "",
     symptoms: "",
   });
+  const [isSubmittingPatient, setIsSubmittingPatient] = useState(false);
+  const [patientSubmitSuccess, setPatientSubmitSuccess] = useState(false);
+  const [patientError, setPatientError] = useState(null);
+  const [patientStep, setPatientStep] = useState("form"); // "form" | "submitting" | "result"
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [error, setError] = useState(null);
-  const [step, setStep] = useState("form"); // "form" | "submitting" | "result"
+  // Medicines State
+  const [rareMedicines, setRareMedicines] = useState([]);
+  const [isLoadingMeds, setIsLoadingMeds] = useState(false);
+  const [medData, setMedData] = useState({ name: "", stock: "", capacity: "" });
+  const [isSubmittingMed, setIsSubmittingMed] = useState(false);
+  const [medError, setMedError] = useState(null);
+
+  // Load medicines on mount
+  useEffect(() => {
+    loadMedicines();
+  }, []);
+
+  const loadMedicines = async () => {
+    setIsLoadingMeds(true);
+    const m = await fetchRareMedicines();
+    setRareMedicines(m);
+    setIsLoadingMeds(false);
+  };
 
   const selectedArea = formData.hospital
     ? hospitalAreaMap[formData.hospital]?.area || "Unknown"
     : "";
 
-  const handleChange = (e) => {
+  const handlePatientChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSubmitSuccess(false);
+  const handleMedChange = (e) => {
+    const { name, value } = e.target;
+    setMedData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    // Validate
+  const handlePatientSubmit = async (e) => {
+    e.preventDefault();
+    setPatientError(null);
+    setPatientSubmitSuccess(false);
+
     if (!formData.hospital || !formData.age || !formData.gender || !formData.symptoms.trim()) {
-      setError("Please fill in all fields.");
+      setPatientError("Please fill in all fields.");
       return;
     }
 
     try {
-      // ===== STEP 1: Save to Firebase =====
-      setStep("submitting");
-      setIsSubmitting(true);
+      setPatientStep("submitting");
+      setIsSubmittingPatient(true);
 
       const today = new Date().toISOString().split("T")[0];
       const hospitalInfo = hospitalAreaMap[formData.hospital];
@@ -95,29 +119,53 @@ export default function DoctorPortal() {
         throw new Error(result.error || "Failed to save report to database.");
       }
 
-      setIsSubmitting(false);
-      setSubmitSuccess(true);
-      setStep("result");
+      setIsSubmittingPatient(false);
+      setPatientSubmitSuccess(true);
+      setPatientStep("result");
     } catch (err) {
-      setError(err.message);
-      setStep("form");
+      setPatientError(err.message);
+      setPatientStep("form");
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingPatient(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({ hospital: "", age: "", gender: "", symptoms: "" });
-    setSubmitSuccess(false);
-    setError(null);
-    setStep("form");
+  const handleMedSubmit = async (e) => {
+    e.preventDefault();
+    setMedError(null);
+
+    if (!medData.name.trim() || !medData.stock || !medData.capacity) {
+      setMedError("Please fill in all medicine details.");
+      return;
+    }
+
+    try {
+      setIsSubmittingMed(true);
+      const newMed = {
+        name: medData.name.trim(),
+        stock: parseInt(medData.stock),
+        capacity: parseInt(medData.capacity),
+        unit: "units",
+        status: parseInt(medData.stock) < (parseInt(medData.capacity) * 0.2) ? "low" : "medium"
+      };
+
+      const result = await addRareMedicine(newMed);
+      if (!result.success) throw new Error(result.error || "Failed to add medicine.");
+
+      setMedData({ name: "", stock: "", capacity: "" });
+      loadMedicines(); // Reload list
+    } catch (err) {
+      setMedError(err.message);
+    } finally {
+      setIsSubmittingMed(false);
+    }
   };
 
-  const getSeverityClass = (level) => {
-    if (!level) return "warning";
-    if (level === "Critical" || level === "High") return "critical";
-    if (level === "Medium") return "warning";
-    return "safe";
+  const resetPatientForm = () => {
+    setFormData({ hospital: "", age: "", gender: "", symptoms: "" });
+    setPatientSubmitSuccess(false);
+    setPatientError(null);
+    setPatientStep("form");
   };
 
   return (
@@ -130,7 +178,7 @@ export default function DoctorPortal() {
           </div>
           <div>
             <h1 className="header-title">Doctor Portal</h1>
-            <p className="header-subtitle">HealthSentinel AI — Patient Report Submission</p>
+            <p className="header-subtitle">HealthSentinel AI — Clinical Registry</p>
           </div>
         </div>
         <div className="header-right">
@@ -141,196 +189,249 @@ export default function DoctorPortal() {
         </div>
       </header>
 
-      {/* ===== PROGRESS STEPS ===== */}
-      <div className="doctor-progress" id="progress-bar">
-        <div className={`doctor-progress-step ${step === "form" ? "active" : (step !== "form" ? "done" : "")}`}>
-          <div className="doctor-progress-icon">
-            {step !== "form" ? <CheckCircle2 size={18} /> : <ClipboardList size={18} />}
-          </div>
-          <span>Patient Details</span>
-        </div>
-        <div className="doctor-progress-line" />
-        <div className={`doctor-progress-step ${step === "submitting" ? "active" : (step === "result" ? "done" : "")}`}>
-          <div className="doctor-progress-icon">
-            {step === "result" ? <CheckCircle2 size={18} /> : <Send size={18} />}
-          </div>
-          <span>Save Data</span>
-        </div>
-        <div className="doctor-progress-line" />
-        <div className={`doctor-progress-step ${step === "result" ? "active" : ""}`}>
-          <div className="doctor-progress-icon">
-            <CheckCircle2 size={18} />
-          </div>
-          <span>Success</span>
-        </div>
+      {/* ===== TABS ===== */}
+      <div className="tabs" style={{ maxWidth: 600, margin: "0 auto 24px" }}>
+        <button 
+          className={`tab ${activeTab === 'patients' ? 'active' : ''}`}
+          onClick={() => setActiveTab('patients')}
+        >
+          <User size={16} />
+          Patient Registry
+        </button>
+        <button 
+          className={`tab ${activeTab === 'medicines' ? 'active' : ''}`}
+          onClick={() => setActiveTab('medicines')}
+        >
+          <Pill size={16} />
+          Rare Medicines
+        </button>
       </div>
 
-      {/* ===== FORM ===== */}
-      {(step === "form") && (
-        <div className="card doctor-form-card" id="patient-form-card">
-          <div className="card-header">
-            <h2 className="card-title">
-              <Stethoscope size={18} /> Submit Patient Report
-            </h2>
-            <span className="card-badge safe">Secure Entry</span>
+      {/* ========================================= */}
+      {/* ============= PATIENT TAB =============== */}
+      {/* ========================================= */}
+      {activeTab === "patients" && (
+        <>
+          {/* PROGRESS STEPS */}
+          <div className="doctor-progress" id="progress-bar">
+            <div className={`doctor-progress-step ${patientStep === "form" ? "active" : (patientStep !== "form" ? "done" : "")}`}>
+              <div className="doctor-progress-icon">
+                {patientStep !== "form" ? <CheckCircle2 size={18} /> : <ClipboardList size={18} />}
+              </div>
+              <span>Patient Details</span>
+            </div>
+            <div className="doctor-progress-line" />
+            <div className={`doctor-progress-step ${patientStep === "submitting" ? "active" : (patientStep === "result" ? "done" : "")}`}>
+              <div className="doctor-progress-icon">
+                {patientStep === "result" ? <CheckCircle2 size={18} /> : <Send size={18} />}
+              </div>
+              <span>Save Data</span>
+            </div>
+            <div className="doctor-progress-line" />
+            <div className={`doctor-progress-step ${patientStep === "result" ? "active" : ""}`}>
+              <div className="doctor-progress-icon">
+                <CheckCircle2 size={18} />
+              </div>
+              <span>Success</span>
+            </div>
           </div>
 
-          {error && (
-            <div className="doctor-error" id="form-error">
-              <AlertTriangle size={16} />
-              {error}
+          {/* FORM */}
+          {(patientStep === "form") && (
+            <div className="card doctor-form-card" id="patient-form-card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <Stethoscope size={18} /> Submit Patient Report
+                </h2>
+                <span className="card-badge safe">Secure Entry</span>
+              </div>
+
+              {patientError && (
+                <div className="doctor-error" id="form-error">
+                  <AlertTriangle size={16} />
+                  {patientError}
+                </div>
+              )}
+
+              <form onSubmit={handlePatientSubmit} className="doctor-form">
+                <div className="doctor-field">
+                  <label className="doctor-label"><Building2 size={14} /> Hospital</label>
+                  <select name="hospital" value={formData.hospital} onChange={handlePatientChange} className="doctor-select">
+                    <option value="">Select Hospital</option>
+                    {Object.keys(hospitalAreaMap).map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                {selectedArea && (
+                  <div className="doctor-field">
+                    <label className="doctor-label"><MapPin size={14} /> Area</label>
+                    <div className="doctor-area-display"><MapPin size={14} />{selectedArea}</div>
+                  </div>
+                )}
+                <div className="doctor-field-row">
+                  <div className="doctor-field">
+                    <label className="doctor-label"><User size={14} /> Age</label>
+                    <input type="number" name="age" value={formData.age} onChange={handlePatientChange} placeholder="e.g. 34" min="0" max="120" className="doctor-input"/>
+                  </div>
+                  <div className="doctor-field">
+                    <label className="doctor-label"><User size={14} /> Gender</label>
+                    <select name="gender" value={formData.gender} onChange={handlePatientChange} className="doctor-select">
+                      <option value="">Select Gender</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="O">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="doctor-field">
+                  <label className="doctor-label"><HeartPulse size={14} /> Symptoms</label>
+                  <textarea name="symptoms" value={formData.symptoms} onChange={handlePatientChange} placeholder="Describe symptoms..." rows={4} className="doctor-textarea"/>
+                </div>
+                <button type="submit" className="analyze-btn">
+                  <Send size={18} /> Submit Patient Report
+                </button>
+              </form>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="doctor-form">
-            {/* Hospital */}
-            <div className="doctor-field">
-              <label className="doctor-label">
-                <Building2 size={14} /> Hospital
-              </label>
-              <select
-                name="hospital"
-                value={formData.hospital}
-                onChange={handleChange}
-                className="doctor-select"
-                id="hospital-select"
-              >
-                <option value="">Select Hospital</option>
-                {Object.keys(hospitalAreaMap).map((h) => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
+          {/* SUBMITTING */}
+          {patientStep === "submitting" && (
+            <div className="card doctor-status-card">
+              <div className="doctor-status-content">
+                <Loader2 size={48} className="doctor-spin" style={{ color: "var(--accent-blue)" }} />
+                <h3>Saving Patient Report...</h3>
+              </div>
             </div>
+          )}
 
-            {/* Area (auto-filled) */}
-            {selectedArea && (
-              <div className="doctor-field">
-                <label className="doctor-label">
-                  <MapPin size={14} /> Area (Auto-detected)
-                </label>
-                <div className="doctor-area-display">
-                  <MapPin size={14} />
-                  {selectedArea}
+          {/* RESULTS */}
+          {patientStep === "result" && (
+            <div className="ai-results" style={{ maxWidth: 600, margin: "0 auto" }}>
+              <div className="doctor-success-banner" style={{ marginBottom: 24 }}>
+                <CheckCircle2 size={24} />
+                <div>
+                  <strong style={{ fontSize: "1.1rem" }}>Patient Report Logged</strong>
                 </div>
               </div>
-            )}
-
-            {/* Age & Gender Row */}
-            <div className="doctor-field-row">
-              <div className="doctor-field">
-                <label className="doctor-label">
-                  <User size={14} /> Patient Age
-                </label>
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  placeholder="e.g. 34"
-                  min="0"
-                  max="120"
-                  className="doctor-input"
-                  id="age-input"
-                />
-              </div>
-              <div className="doctor-field">
-                <label className="doctor-label">
-                  <User size={14} /> Gender
-                </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                  className="doctor-select"
-                  id="gender-select"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="M">Male</option>
-                  <option value="F">Female</option>
-                  <option value="O">Other</option>
-                </select>
+              <div className="card" style={{ padding: 24, textAlign: "center" }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--accent-emerald-glow)", color: "var(--accent-emerald)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <ShieldAlert size={32} />
+                </div>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 8 }}>Ready for Monitoring</h3>
+                <div style={{ display: "flex", gap: 16, flexDirection: "column" }}>
+                  <button className="analyze-btn" onClick={resetPatientForm}><Stethoscope size={18} />Add Another</button>
+                </div>
               </div>
             </div>
-
-            {/* Symptoms */}
-            <div className="doctor-field">
-              <label className="doctor-label">
-                <HeartPulse size={14} /> Symptoms Observed
-              </label>
-              <textarea
-                name="symptoms"
-                value={formData.symptoms}
-                onChange={handleChange}
-                placeholder="Describe the patient's symptoms in detail, e.g. 'Acute watery diarrhea, vomiting, severe dehydration, cold clammy skin'"
-                rows={4}
-                className="doctor-textarea"
-                id="symptoms-input"
-              />
-            </div>
-
-            {/* Submit */}
-            <button type="submit" className="analyze-btn" id="submit-report-btn">
-              <Send size={18} />
-              Submit Patient Report
-            </button>
-          </form>
-        </div>
+          )}
+        </>
       )}
 
-      {/* ===== SUBMITTING STATE ===== */}
-      {step === "submitting" && (
-        <div className="card doctor-status-card">
-          <div className="doctor-status-content">
-            <Loader2 size={48} className="doctor-spin" style={{ color: "var(--accent-blue)" }} />
-            <h3>Saving Patient Report to Database...</h3>
-            <p>Securely uploading to Firebase Firestore</p>
-          </div>
-        </div>
-      )}
+      {/* ========================================= */}
+      {/* =========== RARE MEDICINES TAB ========== */}
+      {/* ========================================= */}
+      {activeTab === "medicines" && (
+        <div style={{ animation: "fadeSlideIn 0.4s ease-out" }}>
+          <div className="dashboard-grid">
+            {/* Add Medicine Form */}
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <Pill size={18} /> Add Rare Medicine
+                </h2>
+                <span className="card-badge warning">Doctor Exclusive</span>
+              </div>
+              
+              {medError && (
+                <div className="doctor-error" style={{ marginBottom: 16 }}>
+                  <AlertTriangle size={16} />
+                  {medError}
+                </div>
+              )}
 
-      {/* ===== RESULTS ===== */}
-      {step === "result" && (
-        <div className="ai-results" style={{ animation: "fadeSlideIn 0.5s ease-out", maxWidth: 600, margin: "0 auto" }}>
-          {/* Success Banner */}
-          <div className="doctor-success-banner" id="success-banner" style={{ marginBottom: 24 }}>
-            <CheckCircle2 size={24} />
-            <div>
-              <strong style={{ fontSize: "1.1rem" }}>Patient Report Logged Successfully</strong>
-              <p style={{ marginTop: 4 }}>Data safely stored in the central clinical registry.</p>
+              <form onSubmit={handleMedSubmit} className="doctor-form">
+                <div className="doctor-field">
+                  <label className="doctor-label"><Database size={14} /> Medicine Name</label>
+                  <input type="text" name="name" value={medData.name} onChange={handleMedChange} placeholder="e.g. Anti-Venom, Paxlovid" className="doctor-input"/>
+                </div>
+
+                <div className="doctor-field-row">
+                  <div className="doctor-field">
+                    <label className="doctor-label"><Database size={14} /> Current Stock</label>
+                    <input type="number" name="stock" value={medData.stock} onChange={handleMedChange} placeholder="e.g. 50" min="0" className="doctor-input"/>
+                  </div>
+                  <div className="doctor-field">
+                    <label className="doctor-label"><Database size={14} /> Max Capacity</label>
+                    <input type="number" name="capacity" value={medData.capacity} onChange={handleMedChange} placeholder="e.g. 200" min="1" className="doctor-input"/>
+                  </div>
+                </div>
+
+                <button type="submit" className="analyze-btn" disabled={isSubmittingMed} style={{ background: "linear-gradient(135deg, var(--accent-emerald), #34d399)" }}>
+                  {isSubmittingMed ? <Loader2 size={18} className="doctor-spin"/> : <Plus size={18}/>}
+                  {isSubmittingMed ? "Saving..." : "Add to Inventory"}
+                </button>
+              </form>
             </div>
-          </div>
 
-          <div className="card" style={{ padding: 24, textAlign: "center" }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--accent-emerald-glow)", color: "var(--accent-emerald)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <ShieldAlert size={32} />
-            </div>
-            <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 8 }}>Ready for AI Monitoring</h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.6, marginBottom: 20 }}>
-              The HealthSentinel AI monitors the data stream automatically to detect sudden outbreaks.
-            </p>
-
-            {/* Action Buttons */}
-            <div style={{ display: "flex", gap: 16, flexDirection: "column" }}>
-              <button className="analyze-btn" onClick={resetForm} id="add-another-btn">
-                <Stethoscope size={18} />
-                Add Another Patient
-              </button>
-              <Link href="/" className="doctor-back-link" style={{ background: "rgba(255,255,255,0.05)", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <TrendingUp size={18} />
-                View Full Dashboard
-              </Link>
+            {/* Inventory List */}
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <Database size={18} /> Current Inventory
+                </h2>
+              </div>
+              
+              {isLoadingMeds ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+                  <Loader2 size={32} className="doctor-spin" style={{ color: "var(--text-muted)" }}/>
+                </div>
+              ) : rareMedicines.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
+                  <Pill size={48} style={{ opacity: 0.2, margin: "0 auto 16px" }} />
+                  <p>No rare medicines in inventory yet.</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table className="resource-table" style={{ width: "100%" }}>
+                    <thead>
+                      <tr>
+                        <th>Medicine</th>
+                        <th>Stock Level</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rareMedicines.map((med, idx) => (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: 500 }}>{med.name}</td>
+                          <td>
+                            <div style={{ fontSize: "0.8rem", marginBottom: 6 }}>
+                              {med.stock} / {med.capacity}
+                            </div>
+                            <div className="stock-bar">
+                              <div 
+                                className={`stock-bar-fill ${med.status || "low"}`} 
+                                style={{ width: `${Math.min(100, Math.max(0, (med.stock / med.capacity) * 100))}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`stock-status ${med.status || "low"}`}>{med.status || "Low"}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {/* ===== FOOTER ===== */}
-      <footer className="footer">
+      <footer className="footer" style={{ marginTop: 40 }}>
         <p>
           Powered by <strong>Google Gemini AI</strong> &bull; Google Firebase &bull; HealthSentinel AI &copy; 2026
-        </p>
-        <p style={{ marginTop: 4 }}>
-          All patient data is anonymized and encrypted. Built for public health readiness.
         </p>
       </footer>
     </div>
