@@ -182,7 +182,7 @@ export default function DoctorPortal() {
           </div>
         </div>
         <div className="header-right">
-          <Link href="/" className="doctor-back-link" id="back-to-dashboard">
+          <Link href="/dashboard" className="doctor-back-link" id="back-to-dashboard">
             <ArrowLeft size={16} />
             Dashboard
           </Link>

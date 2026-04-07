@@ -22,7 +22,7 @@ import {
   BadgeAlert,
   TriangleAlert,
   Clock,
-  ArrowLeft,
+  Lock,
   Globe,
 } from "lucide-react";
 import { clinicalReports, areaData } from "../lib/mock-data";
@@ -119,8 +119,8 @@ export default function CitizenPortal() {
       {/* ===== CITIZEN HEADER ===== */}
       <header className="citizen-header" id="citizen-header">
         <div className="citizen-header-top">
-          <Link href="/" className="back-link" id="back-to-admin">
-            <ArrowLeft size={16} />
+          <Link href="/login" className="back-link" id="admin-login-btn">
+            <Lock size={16} />
             {t.adminDashboard}
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
