@@ -7,12 +7,12 @@ import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore";
 
 // Using your real Firebase config from .env.local
 const firebaseConfig = {
-  apiKey: "AIzaSyAexMKlr5FYpd9ndyPiSnCgQn2As9xBrbs",
+  apiKey: "",
   authDomain: "void-28822.firebaseapp.com",
   projectId: "void-28822",
-  storageBucket: "void-28822.firebasestorage.app",
-  messagingSenderId: "618599596848",
-  appId: "1:618599596848:web:f4d9df6615435610443ef5",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: "",
 };
 
 const app = initializeApp(firebaseConfig);
